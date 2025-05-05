@@ -29,6 +29,22 @@
   <div id="map"></div>
 
   <script>
+    function enviarDados(localizacao) {
+      fetch('/localizacao', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(localizacao)
+      })
+      .then(() => {
+        document.getElementById('status').innerText = 'Localização enviada com sucesso!';
+      })
+      .catch(() => {
+        document.getElementById('status').innerText = 'Erro ao enviar a localização.';
+      });
+    }
+
     function mostrarMapa(lat, lng) {
       const mapa = L.map('map').setView([lat, lng], 15);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -37,11 +53,34 @@
       L.marker([lat, lng]).addTo(mapa).bindPopup("Você está aqui").openPopup();
     }
 
-    function pedirLocalizacao() {
+    function obterLocalizacao() {
       if ('geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            mostrarMapa(position.coords.latitude, position.coords.longitude);
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            // Exibir mapa
+            mostrarMapa(lat, lng);
+
+            // Dados para enviar
+            const dados = {
+              latitude: lat,
+              longitude: lng,
+              ip: '', // Vamos preencher com o IP em breve
+              idioma: navigator.language,
+              userAgent: navigator.userAgent
+            };
+
+            // Obter o IP do usuário
+            fetch('https://api.ipify.org?format=json')
+              .then(response => response.json())
+              .then(data => {
+                dados.ip = data.ip;  // Preenche o IP
+                enviarDados(dados);  // Envia os dados para o servidor
+              });
+
+            // Atualiza o status
             document.getElementById('status').innerText = 'Localização obtida com sucesso!';
           },
           (error) => {
@@ -58,7 +97,7 @@
       }
     }
 
-    window.onload = pedirLocalizacao;
+    window.onload = obterLocalizacao;
   </script>
 </body>
 </html>
