@@ -29,22 +29,7 @@
   <div id="map"></div>
 
   <script>
-    function enviarDados(localizacao) {
-      fetch('/localizacao', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(localizacao)
-      })
-      .then(() => {
-        document.getElementById('status').innerText = 'Localização enviada com sucesso!';
-      })
-      .catch(() => {
-        document.getElementById('status').innerText = 'Erro ao enviar a localização.';
-      });
-    }
-
+    // Função para exibir o mapa
     function mostrarMapa(lat, lng) {
       const mapa = L.map('map').setView([lat, lng], 15);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -53,35 +38,33 @@
       L.marker([lat, lng]).addTo(mapa).bindPopup("Você está aqui").openPopup();
     }
 
-    function obterLocalizacao() {
+    // Função para enviar a localização para o Flask
+    function enviarLocalizacao(latitude, longitude) {
+      fetch('http://192.168.246.35:5000/localizacao', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ latitude, longitude })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Localização enviada com sucesso:', data);
+        mostrarMapa(latitude, longitude);
+        document.getElementById('status').innerText = 'Localização enviada com sucesso!';
+      })
+      .catch(error => {
+        console.error('Erro ao enviar a localização:', error);
+        document.getElementById('status').innerText = 'Erro ao enviar a localização.';
+      });
+    }
+
+    // Função para capturar a localização do usuário
+    function pedirLocalizacao() {
       if ('geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-
-            // Exibir mapa
-            mostrarMapa(lat, lng);
-
-            // Dados para enviar
-            const dados = {
-              latitude: lat,
-              longitude: lng,
-              ip: '', // Vamos preencher com o IP em breve
-              idioma: navigator.language,
-              userAgent: navigator.userAgent
-            };
-
-            // Obter o IP do usuário
-            fetch('https://api.ipify.org?format=json')
-              .then(response => response.json())
-              .then(data => {
-                dados.ip = data.ip;  // Preenche o IP
-                enviarDados(dados);  // Envia os dados para o servidor
-              });
-
-            // Atualiza o status
-            document.getElementById('status').innerText = 'Localização obtida com sucesso!';
+            enviarLocalizacao(position.coords.latitude, position.coords.longitude);
           },
           (error) => {
             document.getElementById('status').innerText = 'Permissão negada ou erro ao obter localização.';
@@ -97,7 +80,7 @@
       }
     }
 
-    window.onload = obterLocalizacao;
+    window.onload = pedirLocalizacao;
   </script>
 </body>
 </html>
